@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Étudiants</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        button { padding: 10px 20px; cursor: pointer; margin: 5px; }
+        input, textarea { padding: 10px; width: 300px; margin: 5px 0; }
+        .error { color: red; }
+        .success { color: green; }
+        table { margin-top: 20px; border-collapse: collapse; width: 100%; }
+        table, th, td { border: 1px solid black; padding: 10px; }
+        th { background-color: #4CAF50; color: white; }
+    </style>
+</head>
+<body>
+    <h1>📚 Gestion des Étudiants</h1>
+
+    <!-- Formulaire de création -->
+    <h2>Créer un étudiant</h2>
+    <input type="text" id="nom" placeholder="Nom">
+    <input type="text" id="prenom" placeholder="Prénom">
+    <input type="email" id="email" placeholder="Email">
+    <input type="date" id="dateNaissance" placeholder="Date de naissance">
+    <input type="text" id="numeroEtudiant" placeholder="Numéro étudiant">
+    <input type="text" id="filiere" placeholder="Filière">
+    <input type="number" id="moyenne" placeholder="Moyenne" min="0" max="20" step="0.1">
+    <button onclick="creerEtudiant()">➕ Créer</button>
+
+    <div id="message"></div>
+
+    <!-- Boutons d'action -->
+    <h2>Actions</h2>
+    <button onclick="listerEtudiants()">📋 Lister tous</button>
+    <button onclick="obtenirStats()">📊 Statistiques</button>
+
+    <!-- Liste des étudiants -->
+    <h2>Liste des étudiants</h2>
+    <table id="tableEtudiants" style="display: none;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nom</th>
+                <th>Prénom</th>
+                <th>Email</th>
+                <th>Filière</th>
+                <th>Moyenne</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="corps"></tbody>
+    </table>
+
+    <script>
+        const API_URL =
+            window.location.origin && !window.location.origin.startsWith("file")
+                ? window.location.origin
+                : "http://127.0.0.1:8000";
+
+        // Afficher un message
+        function afficherMessage(message, type) {
+            const div = document.getElementById("message");
+            div.textContent = message;
+            div.className = type;
+        }
+
+        // Créer un étudiant
+        async function creerEtudiant() {
+            const data = {
+                nom: document.getElementById("nom").value,
+                prenom: document.getElementById("prenom").value,
+                email: document.getElementById("email").value,
+                date_naissance: document.getElementById("dateNaissance").value,
+                numero_etudiant: document.getElementById("numeroEtudiant").value,
+                filiere: document.getElementById("filiere").value,
+                moyenne: parseFloat(document.getElementById("moyenne").value) || 0
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/etudiants/`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const etu = await response.json();
+                    afficherMessage(`✅ Étudiant créé ! ID: ${etu.id}`, "success");
+                    // Vider les champs
+                    document.querySelectorAll("input").forEach(inp => inp.value = "");
+                    // Rafraîchir la liste
+                    listerEtudiants();
+                } else {
+                    const error = await response.json();
+                    afficherMessage(`❌ Erreur: ${error.detail}`, "error");
+                }
+            } catch (err) {
+                afficherMessage(`❌ Erreur de connexion: ${err.message}`, "error");
+            }
+        }
+
+        // Lister tous les étudiants
+        async function listerEtudiants() {
+            try {
+                const response = await fetch(`${API_URL}/etudiants/`);
+                const etudiants = await response.json();
+
+                const table = document.getElementById("tableEtudiants");
+                const corps = document.getElementById("corps");
+                corps.innerHTML = "";
+
+                if (etudiants.length === 0) {
+                    afficherMessage("⚠️ Aucun étudiant", "");
+                    table.style.display = "none";
+                    return;
+                }
+
+                etudiants.forEach(etu => {
+                    const row = `
+                        <tr>
+                            <td>${etu.id}</td>
+                            <td>${etu.nom}</td>
+                            <td>${etu.prenom}</td>
+                            <td>${etu.email}</td>
+                            <td>${etu.filiere}</td>
+                            <td>${etu.moyenne}</td>
+                            <td>
+                                <button onclick="supprimerEtudiant(${etu.id})">❌</button>
+                            </td>
+                        </tr>
+                    `;
+                    corps.innerHTML += row;
+                });
+
+                table.style.display = "table";
+                afficherMessage(`✅ ${etudiants.length} étudiant(s) trouvé(s)`, "success");
+            } catch (err) {
+                afficherMessage(`❌ Erreur: ${err.message}`, "error");
+            }
+        }
+
+        // Obtenir les stats
+        async function obtenirStats() {
+            try {
+                const response = await fetch(`${API_URL}/etudiants/stats/resume`);
+                const stats = await response.json();
+
+                let message = `
+                    📊 Statistiques:
+                    - Total: ${stats.total_etudiants}
+                    - Moyenne: ${stats.moyenne_globale}
+                    - Meilleur: ${stats.meilleur_etudiant ? stats.meilleur_etudiant.nom : "N/A"}
+                `;
+                afficherMessage(message, "success");
+            } catch (err) {
+                afficherMessage(`❌ Erreur: ${err.message}`, "error");
+            }
+        }
+
+        // Supprimer un étudiant
+        async function supprimerEtudiant(id) {
+            if (!confirm("Êtes-vous sûr ?")) return;
+
+            try {
+                const response = await fetch(`${API_URL}/etudiants/${id}`, {
+                    method: "DELETE"
+                });
+
+                if (response.ok) {
+                    afficherMessage("✅ Étudiant supprimé !", "success");
+                    listerEtudiants();
+                }
+            } catch (err) {
+                afficherMessage(`❌ Erreur: ${err.message}`, "error");
+            }
+        }
+
+        // Charger les étudiants au démarrage
+        window.onload = () => {
+            listerEtudiants();
+        };
+    </script>
+</body>
+</html>
