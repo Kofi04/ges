@@ -35,16 +35,26 @@ INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 INFO:     Application startup complete
 ```
 
-### Étape 3 : Accéder à la documentation
+### Étape 3 : Accéder à la documentation (local)
 
 - **Documentation interactive (Swagger UI)** : http://127.0.0.1:8000/docs
 - **Documentation alternative (ReDoc)** : http://127.0.0.1:8000/redoc
+
+### Étape 4 : Déploiement sur Render
+
+Une version hébergée est disponible sur Render avec le service **`gestion-tudiants`** :
+
+- **UI (interface web)** : https://gestion-tudiants.onrender.com
+- **API info** : https://gestion-tudiants.onrender.com/api
+- **Documentation Swagger** : https://gestion-tudiants.onrender.com/docs
+- **Documentation ReDoc** : https://gestion-tudiants.onrender.com/redoc
 
 ## 📡 Endpoints Disponibles
 
 ### 1. Information API
 ```
-GET /              - Information générale
+GET /              - Interface web (index.html)
+GET /api           - Information générale sur l'API
 GET /health        - Vérifier la santé de l'API
 ```
 
